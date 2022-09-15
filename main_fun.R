@@ -1,6 +1,7 @@
 library(Seurat)
 library(readxl)
 library(ggplot2)
+library(tidyverse)
 
 ### Function to visualize hypectral data
 ### Currently done using SEURAT application
@@ -26,8 +27,9 @@ run_primary_analysis = function(dat,col_start=3,num_neighbors,min_dist,meta="ori
 	obj = RunUMAP(obj,dims=1:10,umap.method="uwot",n.neighbors = num_neighbors,min.dist=min_dist,metric="cosine",verbose=F)
 	if(plots) print(DimPlot(obj,group.by=meta)+labs(title=""))
 	if(cluster){
-		obj = FindNeighbors(obj, reduction = "pca", dims = 1:10)
-		obj = FindClusters(obj,resolution=c(0.4,0.6,0.8),random.seed=123)
+		obj = FindNeighbors(obj, reduction = "pca", dims = 1:10,verbose=F)
+		obj = FindClusters(obj,resolution=c(0.4,0.6,0.8),random.seed=123,verbose=F)
+		print(DimPlot(obj)+labs(title=""))
 	}
 	return(obj)
 }
@@ -38,8 +40,13 @@ run_primary_analysis = function(dat,col_start=3,num_neighbors,min_dist,meta="ori
 file_name = "96Bins_Mostly512x512_MeanObjectIntensity.xlsx"
 
 f = data.frame(read_excel(file_name),check.names=F)
-rownames(f) = paste(f$XFP,f$ObjectNumber,sep="-")
+rownames(f) = paste(f$XFP,f$ObjectNumber,sep="_")
 dim(f)
 
 ## Run the analysis
 run1 = run_primary_analysis(dat=f,col_start=3,num_neighbors=80L,min_dist=0.25)
+head(run1)
+
+## If clustering is necessary
+run1 = FindNeighbors(run1, reduction = "pca", dims = 1:10,verbose=F) %>% FindClusters(resolution=c(0.4,0.6,0.8),random.seed=123,verbose=F)
+DimPlot(run1,group.by="RNA_snn_res.0.6")
