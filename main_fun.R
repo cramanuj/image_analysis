@@ -32,7 +32,7 @@ prep_data = function(file_name = file){
 run_primary_analysis = function(dat,col_start=3,num_neighbors,min_dist,meta="orig.ident",cluster=F,plots=T){
 	dat = dat[,col_start:ncol(dat)]
 	dat = t(dat)
-	out = split(c(410:696), sort(c(410:696)%%96)) 
+	out = split(c(410:696), sort(c(410:696)%%96))
 	rownames(dat) = laply(1:length(out),function(i) paste(out[i],collapse="_"))
 	obj = CreateSeuratObject(counts=dat)
 	VariableFeatures(obj) = rownames(obj)
@@ -57,4 +57,10 @@ head(run1)
 
 ## If clustering is necessary
 run1 = FindNeighbors(run1, reduction = "pca", dims = 1:10,verbose=F) %>% FindClusters(resolution=c(0.4,0.6,0.8),random.seed=123,verbose=F)
+
+## Plotting
+xfp_colors=c("#1F1850","#FF5900","#770B00","#095A98","#31C331","#FF1800","#FEB300","#250FB0","#298297","#438EB3","#29A37B","#FF8B00")
+DimPlot(run1,group.by="orig.ident",cols=xfp_colors)
 DimPlot(run1,group.by="RNA_snn_res.0.6")
+FeaturePlot(run1, features = rownames(run1)[c(1,10,30,40)], min.cutoff = "q05", max.cutoff = "q95", cols = c("lightblue", "magenta"), pt.size = 1,order=T,label=F,ncol=2)
+DoHeatmap(run1,features=rownames(run1),size=3,group.by="orig.ident",raster=F,group.colors =xfp_colors)
