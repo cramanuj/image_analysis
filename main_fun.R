@@ -4,6 +4,12 @@ library(ggplot2)
 library(tidyverse)
 library(plyr)
 
+###############################################################
+### Load utility functions
+### Note: Make sure that this R script is in the same directory
+###############################################################
+source("util_funcs.R")
+
 #######################################################
 ## If the file is formatted in Excel
 ## I hope the first column in the excel file is the true
@@ -14,11 +20,10 @@ prep_data = function(file_name = file){
 	rownames(f) = paste(f$XFP,f$ObjectNumber,sep="_")
 	return(f)
 }
-
-#############################################
+###########################################################################################
 ### Function to visualize hyperspectral data
 ### Currently done using SEURAT application
-#############################################
+###########################################################################################
 ## Explanation of the parameters
 ##
 ## file: file object stored as a data frame
@@ -28,13 +33,15 @@ prep_data = function(file_name = file){
 ## min_dist: This controls how tightly the embedding is allowed compress points together (UMAP hyperparameter)
 ## cluster: Boolean (True/False) whether clustering needs to be done
 ## plots: Print plots
-##############################################
-run_primary_analysis = function(dat,col_start=3,num_neighbors,min_dist,meta="orig.ident",cluster=F,plots=T){
+############################################################################################
+run_primary_analysis = function(file,col_start=3,num_neighbors,min_dist,meta="orig.ident",cluster=F,plots=T){
+	dat = prep_data(file_name=file)
 	dat = dat[,col_start:ncol(dat)]
 	dat = t(dat)
 	out = split(c(410:696), sort(c(410:696)%%96))
 	rownames(dat) = laply(1:length(out),function(i) paste(out[i],collapse="_"))
-	obj = CreateSeuratObject(counts=dat)
+	datN = transformData(dat,cfLow=0, cfHigh=5)
+	obj = CreateSeuratObject(counts=datN)
 	VariableFeatures(obj) = rownames(obj)
 	obj = ScaleData(obj,verbose=F)
 	obj = RunPCA(obj,verbose=F,npcs=20)
@@ -51,13 +58,11 @@ run_primary_analysis = function(dat,col_start=3,num_neighbors,min_dist,meta="ori
 ## Run the analysis
 file="96Bins_Mostly512x512_MeanObjectIntensity.xlsx"
 
-f = prep_data(file_name=file)
-run1 = run_primary_analysis(dat=f,col_start=3,num_neighbors=80L,min_dist=0.25)
-head(run1)
+# f = prep_data(file_name=file)
+run1 = run_primary_analysis(file,col_start=3,num_neighbors=80L,min_dist=0.25,plot=T)
 
 ## If clustering is necessary
 run1 = FindNeighbors(run1, reduction = "pca", dims = 1:10,verbose=F) %>% FindClusters(resolution=c(0.4,0.6,0.8),random.seed=123,verbose=F)
-
 ## Plotting
 xfp_colors=c("#1F1850","#FF5900","#770B00","#095A98","#31C331","#FF1800","#FEB300","#250FB0","#298297","#438EB3","#29A37B","#FF8B00")
 DimPlot(run1,group.by="orig.ident",cols=xfp_colors)
